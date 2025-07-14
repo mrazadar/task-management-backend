@@ -1,36 +1,48 @@
-import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
+import cors from 'cors';
+import express from 'express';
+
+import { errorHandler } from './middlewares/errorHandler.js';
+
+// import tasksRouter from './routes/tasks';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: '.env' });
 
 // Initialize Express app
 const app = express();
 
-// middlewares
-// app.use(cors());
-app.use(express.json());
+async function server() {
+  // middlewares
+  app.use(cors());
+  app.use(express.json());
 
-// Health check endpoint
-app.get('/api/health', (req: express.Request, res: express.Response) => {
-  res.status(200).json({ status: 'OK', message: 'Server is running' });
-});
+  // app routes
+  // app.use('/api/tasks', tasksRouter);
 
-// Get Version
-app.get('/api/version', (req: express.Request, res: express.Response) => {
-  res.status(200).json({ version: process.env.npm_package_version });
-});
+  // Health check endpoint
+  app.get('/api/health', (req: express.Request, res: express.Response) => {
+    res.status(200).json({ status: 'OK', message: 'Server is running' });
+  });
 
-// Start server
-const PORT = process.env.PORT || 3002;
+  // Get Version
+  app.get('/api/version', (req: express.Request, res: express.Response) => {
+    res.status(200).json({ version: process.env.npm_package_version });
+  });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+  app.use(errorHandler);
+  // Start server
+  const PORT = process.env.PORT || 3002;
+
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
 /**
  * @description Entry point for the Node.js/Express server.
  * @reference https://expressjs.com/en/starter/hello-world.html
  * @reference https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-oop.html
  * @linting ESLint with Airbnb TypeScript rules ensures code consistency.
  */
+server();
