@@ -7,6 +7,8 @@ export const TaskSchema = z.object({
   status: z.enum(['TODO', 'IN_PROGRESS', 'DONE'], {
     error: 'Invalid status',
   }),
+  // createdAt: z.string(),
+  // updatedAt: z.string(),
 });
 
 export type Task = z.infer<typeof TaskSchema>;

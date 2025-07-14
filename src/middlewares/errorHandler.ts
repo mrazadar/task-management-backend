@@ -2,9 +2,11 @@ import type { Request, Response, NextFunction } from 'express';
 
 import { ZodError } from 'zod';
 
+import { StatusCodes } from 'http-status-codes';
+
 // Custom error interface for structured error responses
 export interface AppError {
-  statusCode?: number;
+  statusCode?: StatusCodes;
   message: string;
   details?: any;
 }
@@ -38,20 +40,19 @@ export const errorHandler = (
   // Handle Zod validation errors
   if (err instanceof ZodError) {
     const response: AppError = {
-      statusCode: 400,
+      statusCode: StatusCodes.BAD_REQUEST,
       message: 'Validation failed',
       details: `${(err.stack, err.message)}`,
     };
 
-    res.status(400).json(response);
-    return;
+    res.status(StatusCodes.BAD_REQUEST).json(response);
   }
 
   // Handle generic errors
   const response: AppError = {
-    statusCode: 500,
+    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
     message: err.message || 'Internal server error',
   };
 
-  res.status(500).json(response);
+  res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(response);
 };
