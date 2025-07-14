@@ -7,7 +7,8 @@ import { TaskSchema, type Task } from '../schemas/task.js';
 import { parse } from 'csv-parse';
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+
+export const multerUpload = multer({ storage });
 
 export const uploadHandler = async (
   req: Request,

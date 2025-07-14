@@ -4,7 +4,7 @@ import express from 'express';
 
 import { errorHandler } from './middlewares/errorHandler.js';
 
-// import tasksRouter from './routes/tasks';
+import tasksRouter from './routes/tasks.js';
 
 // Load environment variables
 dotenv.config({ path: '.env' });
@@ -18,7 +18,7 @@ async function server() {
   app.use(express.json());
 
   // app routes
-  // app.use('/api/tasks', tasksRouter);
+  app.use('/api/tasks', tasksRouter);
 
   // Health check endpoint
   app.get('/api/health', (req: express.Request, res: express.Response) => {
