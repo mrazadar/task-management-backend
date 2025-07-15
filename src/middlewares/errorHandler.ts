@@ -1,6 +1,6 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 
-import { ZodError, type ZodIssue } from 'zod';
+import { ZodError } from 'zod';
 
 import { StatusCodes } from 'http-status-codes';
 
@@ -8,7 +8,7 @@ import { StatusCodes } from 'http-status-codes';
 export interface AppError {
   statusCode?: StatusCodes;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -26,8 +26,7 @@ export interface AppError {
 export const errorHandler = (
   err: Error | ZodError,
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): void => {
   // Log the error for debugging (extendable to a logging service like Winston)
   console.error('Error:00000/', {

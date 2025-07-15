@@ -58,7 +58,7 @@ export const uploadHandler = async (
         try {
           const validatedTask = TaskSchema.parse(row);
           parsedTasks.push(validatedTask);
-          const task = await prisma.task.create({
+          await prisma.task.create({
             data: validatedTask,
           });
         } catch (error) {
@@ -100,8 +100,6 @@ export const createTask = async (
   next: NextFunction
 ) => {
   try {
-    const { body } = req;
-
     // Validate the task data using the TaskSchema
     const validatedTask = CreateTaskSchema.parse(req.body);
 
