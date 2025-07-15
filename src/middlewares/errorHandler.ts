@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 
-import { ZodError } from 'zod';
+import { ZodError, type ZodIssue } from 'zod';
 
 import { StatusCodes } from 'http-status-codes';
 
@@ -30,7 +30,7 @@ export const errorHandler = (
   next: NextFunction
 ): void => {
   // Log the error for debugging (extendable to a logging service like Winston)
-  console.error('Error:', {
+  console.error('Error:00000/', {
     message: err.message,
     stack: err.stack,
     path: req.path,
@@ -42,7 +42,7 @@ export const errorHandler = (
     const response: AppError = {
       statusCode: StatusCodes.BAD_REQUEST,
       message: 'Validation failed',
-      details: `${(err.stack, err.message)}`,
+      details: err.issues,
     };
 
     res.status(StatusCodes.BAD_REQUEST).json(response);

@@ -7,7 +7,7 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import tasksRouter from './routes/tasks.js';
 
 // Load environment variables
-dotenv.config({ path: '.env' });
+dotenv.config();
 
 // Initialize Express app
 const app = express();

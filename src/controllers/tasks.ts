@@ -1,10 +1,13 @@
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 import multer from 'multer';
 import type { Request, Response, NextFunction } from 'express';
 
 import { TaskSchema, type Task } from '../schemas/task.js';
 
 import { parse } from 'csv-parse';
+
+type TaskZodError = z.ZodError<Task>;
+type TaskZodErrors = Array<ZodError<Task>>;
 
 const storage = multer.memoryStorage();
 
@@ -24,6 +27,7 @@ export const uploadHandler = async (
 
     const parsedTasks: Array<z.infer<typeof TaskSchema>> = [];
 
+    const errors: TaskZodErrors = [];
     // read file buffer using multer
 
     // open asyncFileStream to read csv file data in chunks
@@ -51,15 +55,21 @@ export const uploadHandler = async (
         } catch (error) {
           // parser.emit('error', error); // Handled by error middleware
           parser.emit('error', error);
+          // throw error;
         }
       })
       .on('end', () => {
-        res
-          .status(201)
-          .json({ message: 'Tasks uploaded successfully', tasks: parsedTasks });
+        if (errors.length > 0) {
+          next(errors);
+        } else {
+          res.status(201).json({
+            message: 'Tasks uploaded successfully',
+            tasks: parsedTasks,
+          });
+        }
       })
-      .on('error', (error) => {
-        throw error; // Handled by error middleware
+      .on('error', (error: TaskZodError) => {
+        errors.push(error);
       });
   } catch (error) {
     next(error);
