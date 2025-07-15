@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run formatter
+npm run format
+
+# Run linter with fix
+npm run lint:fix
+
+# Check if there are changes to commit
+if git diff --quiet; then
+  echo "No changes to commit after lint:fix"
+else
+  # Add all fixed files and commit them
+  git add .
+  git commit -m "chore: auto-fix linting and formatting issues"
+fi
+
+# Continue with the original commit
+exit 0

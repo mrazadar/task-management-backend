@@ -11,7 +11,9 @@
     "build": "tsc",
     "lint": "eslint . --ext, .ts",
     "lint:fix": "eslint . --ext, .ts --fix",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+    "prepare": "husky",
+    "postinstall": "chmod +x .husky/pre-commit || true"
   },
   "keywords": [],
   "author": "",
@@ -38,10 +40,16 @@
     "eslint-config-airbnb-typescript": "^18.0.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.1",
+    "husky": "^9.1.7",
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "prisma": "^6.11.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "./husky/pre-commit"
+    }
   }
 }

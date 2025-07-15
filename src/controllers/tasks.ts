@@ -2,9 +2,15 @@ import { z, ZodError } from 'zod';
 import multer from 'multer';
 import type { Request, Response, NextFunction } from 'express';
 
-import { TaskSchema, type Task } from '../schemas/task.js';
+import {
+  CreateTaskSchema,
+  TaskSchema,
+  UpdateTaskSchema,
+  type Task,
+} from '../schemas/task.js';
 
 import { parse } from 'csv-parse';
+import prisma from '../prisma/client.js';
 
 type TaskZodError = z.ZodError<Task>;
 type TaskZodErrors = Array<ZodError<Task>>;
@@ -48,10 +54,13 @@ export const uploadHandler = async (
 
     readableStream
       .pipe(parser)
-      .on('data', (row) => {
+      .on('data', async (row) => {
         try {
-          const parsedTask = TaskSchema.parse(row);
-          parsedTasks.push(parsedTask);
+          const validatedTask = TaskSchema.parse(row);
+          parsedTasks.push(validatedTask);
+          const task = await prisma.task.create({
+            data: validatedTask,
+          });
         } catch (error) {
           // parser.emit('error', error); // Handled by error middleware
           parser.emit('error', error);
@@ -85,27 +94,147 @@ export const uploadHandler = async (
  * @reference https://expressjs.com/en/guide/routing.html
  * @linting ESLint with Airbnb TypeScript rules ensures code consistency.
  */
-export const createTask = (req: Request, res: Response, next: NextFunction) => {
-  const task: Task = {
-    title: req.body.title,
-    description: req.body.description,
-    status: req.body.status,
-  };
+export const createTask = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { body } = req;
 
-  // Validate the task data using the TaskSchema
-  const validatedTask = TaskSchema.parse(task);
+    // Validate the task data using the TaskSchema
+    const validatedTask = CreateTaskSchema.parse(req.body);
 
-  // // If the validation fails, return a 400 Bad Request response
-  // if (!validatedTask.success) {
-  //   return res.status(400).json({
-  //     message: 'Validation failed',
-  //     details: validatedTask.error.issues,
-  //   });
-  // }
+    // Save the validated task to the database
+    const task = await prisma.task.create({
+      data: validatedTask,
+    });
 
-  // // If the validation passes, save the task to the database
-  // // and return a 201 Created response with the created task
-  // res.status(201).json(validatedTask.data);
-
-  return res.status(201).json(validatedTask);
+    return res.status(201).json(task);
+  } catch (error) {
+    next(error);
+  }
 };
+
+/***
+ * Get all tasks.
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ * @returns JSON response with an array of tasks
+ * @reference https://expressjs.com/en/guide/routing.html
+ */
+export const getAllTasks = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const tasks = await prisma.task.findMany();
+    return res.status(200).json(tasks);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get a single task by ID.
+ * req.params.id is the task ID.
+ * @param req - Express request object
+ * @param res - Express response object
+ * @param next - Express next function
+ * @returns JSON response with the task
+ * @reference https://expressjs.com/en/guide/routing.html
+ */
+export const getTask = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const task = await prisma.task.findUnique({
+      where: {
+        id: Number(id),
+      },
+    });
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+    return res.status(200).json(task);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update a task by ID.
+ * @returns updated task
+ */
+export const updateTask = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    // Validate the task data using the UpdateTaskSchema
+    const validatedTask = UpdateTaskSchema.parse({
+      id: parseInt(id, 10),
+      ...req.body,
+    });
+
+    // Update the task in the database
+    const task = await prisma.task.update({
+      where: {
+        id: Number(id),
+      },
+      data: validatedTask,
+    });
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    return res.status(200).json(task);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete a task by ID.
+ * @returns deleted task
+ */
+export const deleteTask = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    // Delete the task from the database
+    const task = await prisma.task.delete({
+      where: {
+        id: Number(id),
+      },
+    });
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    return res.status(200).json(task);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @description Express router for task CRUD operations using Prisma.
+ * @reference https://www.prisma.io/docs/concepts/components/prisma-client/crud
+ * @reference https://expressjs.com/en/guide/routing.html
+ * @reference https://zod.dev/
+ */
