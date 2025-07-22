@@ -1,57 +1,74 @@
 import type { Request, Response, NextFunction } from 'express';
-
 import { ZodError } from 'zod';
-
 import { StatusCodes } from 'http-status-codes';
+import { HttpError } from '../utils/customErrors.js';
 
 // Custom error interface for structured error responses
 export interface AppError {
-  statusCode?: StatusCodes;
   message: string;
+  statusCode: StatusCodes;
   details?: unknown;
 }
 
 /**
  * Error handling middleware for Express.
- * Handles Zod validation errors and generic server errors, returning standardized JSON responses.
- * @param err - The error object (ZodError or generic Error)
+ * Handles Zod validation errors and custom HttpErrors, returning standardized JSON responses.
+ * @param err - The error object (ZodError, HttpError, or generic Error)
  * @param req - Express request object
  * @param res - Express response object
- * @param next - Express next function
- * @returns JSON response with error details
+ * @param _next - Express next function (unused)
+ * @returns A JSON response with error details. The function is expected to terminate the request-response cycle.
  * @reference https://expressjs.com/en/guide/error-handling.html
  * @reference https://zod.dev/?id=error-handling
  * @linting ESLint with Airbnb TypeScript rules ensures code consistency.
  */
 export const errorHandler = (
-  err: Error | ZodError,
+  err: Error | ZodError | HttpError,
   req: Request,
-  res: Response
+  res: Response,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _next: NextFunction
 ): void => {
-  // Log the error for debugging (extendable to a logging service like Winston)
-  console.error('Error:00000/', {
+  // Log the error for debugging purposes.
+  // In a production environment, consider using a dedicated logging library like Winston.
+  console.error('Error:', {
     message: err.message,
     stack: err.stack,
     path: req.path,
     method: req.method,
   });
 
+  let errorResponse: AppError;
+
   // Handle Zod validation errors
   if (err instanceof ZodError) {
-    const response: AppError = {
+    errorResponse = {
       statusCode: StatusCodes.BAD_REQUEST,
       message: 'Validation failed',
-      details: err.issues,
+      details: err.issues.map((issue) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      })),
     };
-
-    res.status(StatusCodes.BAD_REQUEST).json(response);
+  }
+  // Handle custom HTTP errors
+  else if (err instanceof HttpError) {
+    errorResponse = {
+      statusCode: err.statusCode,
+      message: err.message,
+    };
+  }
+  // Handle generic errors
+  else {
+    errorResponse = {
+      statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+      message: 'An unexpected internal server error occurred.',
+    };
   }
 
-  // Handle generic errors
-  const response: AppError = {
-    statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
-    message: err.message || 'Internal server error',
-  };
-
-  res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(response);
+  // Send the unified error response
+  res.status(errorResponse.statusCode).json({
+    success: false,
+    error: errorResponse,
+  });
 };

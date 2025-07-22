@@ -1,34 +1,42 @@
 import { type NextFunction, type Request, type Response } from 'express';
-
-import jwt from 'jsonwebtoken';
+import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { UnauthorizedError } from '../utils/customErrors.js';
-import { de } from 'zod/locales';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'secret';
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-export const withAuth = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+function isTokenExpired(decodedToken: { exp?: number }): boolean {
+  if (typeof decodedToken.exp === 'undefined') {
+    // If 'exp' claim is not present, the token might be considered valid indefinitely or handled differently based on your application's logic.
+    // For this example, we'll assume it's not expired if no 'exp' is present.
+    return false;
+  }
+
+  const currentTime = Date.now() / 1000; // Get current time in seconds since epoch
+  return decodedToken.exp < currentTime;
+}
+
+export const withAuth = (req: Request, res: Response, next: NextFunction) => {
+  const token = req.cookies?.token;
+
+  if (!token) {
+    throw new UnauthorizedError('Authentication token not provided.');
+  }
+
   try {
-    const token = req.cookies.token;
-    if (!token) {
-      throw new UnauthorizedError('No token provided');
-    }
-
-    const decodedToken = jwt.verify(token, JWT_SECRET) as { userId: number };
-
-    req.user = {
-      id: decodedToken.userId,
+    const decoded: JwtPayload = jwt.verify(token, JWT_SECRET) as {
+      userId: number;
     };
 
+    if (isTokenExpired(decoded)) {
+      throw new UnauthorizedError('Token has expired.');
+    }
+
+    req.user = { id: decoded.userId };
     next();
   } catch (error) {
-    next(error);
+    throw new UnauthorizedError('Invalid or expired authentication token.');
   }
 };
-// extend the Request global module and it should be globally available
 
 declare module 'express' {
   interface Request {
