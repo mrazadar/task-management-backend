@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import cors from 'cors';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 
 import { errorHandler } from './middlewares/errorHandler.js';
 
@@ -18,6 +19,7 @@ async function server() {
   // middlewares
   app.use(cors());
   app.use(express.json());
+  app.use(cookieParser());
 
   // app routes
   app.use('/api/auth', authRouter);

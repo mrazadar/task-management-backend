@@ -16,6 +16,8 @@ function isTokenExpired(decodedToken: { exp?: number }): boolean {
 }
 
 export const withAuth = (req: Request, res: Response, next: NextFunction) => {
+  console.log('Cookies : ', JSON.stringify(req.cookies));
+
   const token = req.cookies?.token;
 
   if (!token) {
@@ -27,9 +29,9 @@ export const withAuth = (req: Request, res: Response, next: NextFunction) => {
       userId: number;
     };
 
-    if (isTokenExpired(decoded)) {
-      throw new UnauthorizedError('Token has expired.');
-    }
+    // if (isTokenExpired(decoded)) {
+    //   throw new UnauthorizedError('Token has expired.');
+    // }
 
     req.user = { id: decoded.userId };
     next();

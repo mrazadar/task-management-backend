@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
 import multer from 'multer';
 import type { Request, Response, NextFunction } from 'express';
 import { parse } from 'csv-parse';
@@ -27,12 +27,12 @@ export const uploadHandler = async (
     }
 
     const parser = parse({ columns: true, skip_empty_lines: true });
-    const tasks: z.infer<typeof TaskSchema>[] = [];
+    const tasks: z.infer<typeof CreateTaskSchema>[] = [];
 
     parser.on('data', (row) => {
       try {
-        const validatedTask = TaskSchema.parse(row);
-        tasks.push({ ...validatedTask, userId: user!.id });
+        const validatedTask = CreateTaskSchema.parse(row);
+        tasks.push({ ...validatedTask });
       } catch (error) {
         parser.emit('error', error);
       }
@@ -49,7 +49,7 @@ export const uploadHandler = async (
         }
 
         await prisma.task.createMany({
-          data: tasks,
+          data: tasks.map((task) => ({ ...task, userId: user!.id })),
           skipDuplicates: true,
         });
 
@@ -77,7 +77,7 @@ export const createTask = async (
   try {
     const validatedTask = CreateTaskSchema.parse(req.body);
     const task = await prisma.task.create({
-      data: { ...validatedTask, userId: req.user!.id },
+      data: CreateTaskSchema.parse({ ...validatedTask, userId: req.user!.id }),
     });
     res.status(StatusCodes.CREATED).json({ success: true, data: task });
   } catch (error) {
