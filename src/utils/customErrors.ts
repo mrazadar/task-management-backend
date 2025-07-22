@@ -119,7 +119,7 @@ export class InternalServerError extends HttpError {
    * @param message An optional custom message for internal server error. Defaults to 'Internal Server Error'.
    */
   constructor(message: string = 'Internal Server Error') {
-    super(message, 500); // Calls HttpError constructor with message and 500 status
+    super(message, StatusCodes.INTERNAL_SERVER_ERROR); // Calls HttpError constructor with message and 500 status
     Object.setPrototypeOf(this, InternalServerError.prototype);
   }
 }

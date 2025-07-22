@@ -11,6 +11,8 @@ import {
 
 import { parse } from 'csv-parse';
 import prisma from '../prisma/client.js';
+import { NotFoundError } from '../utils/customErrors.js';
+import { StatusCodes } from 'http-status-codes';
 
 type TaskZodError = z.ZodError<Task>;
 type TaskZodErrors = Array<ZodError<Task>>;
@@ -28,7 +30,7 @@ export const uploadHandler = async (
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      throw new NotFoundError('No file uploaded');
     }
 
     const parsedTasks: Array<z.infer<typeof TaskSchema>> = [];
@@ -59,8 +61,10 @@ export const uploadHandler = async (
           const validatedTask = TaskSchema.parse(row);
           parsedTasks.push(validatedTask);
           await prisma.task.create({
-            data: validatedTask,
-            // userId: req.user!.id,
+            data: {
+              ...validatedTask,
+              userId: req.user!.id,
+            },
           });
         } catch (error) {
           // parser.emit('error', error); // Handled by error middleware
@@ -72,7 +76,7 @@ export const uploadHandler = async (
         if (errors.length > 0) {
           next(errors);
         } else {
-          res.status(201).json({
+          res.status(StatusCodes.CREATED).json({
             message: 'Tasks uploaded successfully',
             tasks: parsedTasks,
           });
@@ -106,11 +110,13 @@ export const createTask = async (
 
     // Save the validated task to the database
     const task = await prisma.task.create({
-      data: validatedTask,
-      // userId: req.user!.id as unknown as number,
+      data: {
+        ...validatedTask,
+        userId: req.user!.id,
+      },
     });
 
-    return res.status(201).json(task);
+    return res.status(StatusCodes.CREATED).json(task);
   } catch (error) {
     next(error);
   }
@@ -130,8 +136,12 @@ export const getAllTasks = async (
   next: NextFunction
 ) => {
   try {
-    const tasks = await prisma.task.findMany();
-    return res.status(200).json(tasks);
+    const tasks = await prisma.task.findMany({
+      where: {
+        userId: req.user!.id,
+      },
+    });
+    return res.status(StatusCodes.OK).json(tasks);
   } catch (error) {
     next(error);
   }
@@ -156,12 +166,13 @@ export const getTask = async (
     const task = await prisma.task.findUnique({
       where: {
         id: Number(id),
+        userId: req.user!.id,
       },
     });
     if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
+      throw new NotFoundError('Task not found');
     }
-    return res.status(200).json(task);
+    return res.status(StatusCodes.OK).json(task);
   } catch (error) {
     next(error);
   }
@@ -189,15 +200,16 @@ export const updateTask = async (
     const task = await prisma.task.update({
       where: {
         id: Number(id),
+        userId: req.user!.id,
       },
       data: validatedTask,
     });
 
     if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
+      throw new NotFoundError('Task not found');
     }
 
-    return res.status(200).json(task);
+    return res.status(StatusCodes.OK).json(task);
   } catch (error) {
     next(error);
   }
@@ -219,14 +231,15 @@ export const deleteTask = async (
     const task = await prisma.task.delete({
       where: {
         id: Number(id),
+        userId: req.user!.id,
       },
     });
 
     if (!task) {
-      return res.status(404).json({ message: 'Task not found' });
+      throw new NotFoundError('Task not found');
     }
 
-    return res.status(200).json(task);
+    return res.status(StatusCodes.OK).json(task);
   } catch (error) {
     next(error);
   }
