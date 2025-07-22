@@ -8,6 +8,7 @@ export const TaskSchema = z.object({
   status: z.enum(['TODO', 'IN_PROGRESS', 'DONE'], {
     error: 'Invalid status',
   }),
+  userId: z.number().int().positive('User ID must be a positive integer'),
   // createdAt: z.string(),
   // updatedAt: z.string(),
 });

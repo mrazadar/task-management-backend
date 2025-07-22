@@ -1,5 +1,11 @@
 # TODO: Learn the following and apply into this project.
 
+`process.env.JWT_SECRET` is a secret string that should be kept private
+It is used to sign and verify the JWT tokens
+It is generate using the following command:
+`openssl rand -base64 32`
+Remember to keep this secret private and keep it safe!
+
 - Winston (is the most popular logging library for Node.js. It aims to make logging more flexible and extensible by decoupling different aspects such as log levels, formatting, and storage so that each API is independent and many combinations are supported. It also uses Node.js streams to minimize the performance impact of implementing logging in your application.)
 
 - Morgan (Morgan is a popular HTTP request logger middleware for Node.js, particularly used with the Express.js framework. It simplifies the process of logging details about incoming HTTP requests and their corresponding responses in a Node.js application.)

@@ -60,6 +60,7 @@ export const uploadHandler = async (
           parsedTasks.push(validatedTask);
           await prisma.task.create({
             data: validatedTask,
+            // userId: req.user!.id,
           });
         } catch (error) {
           // parser.emit('error', error); // Handled by error middleware
@@ -106,6 +107,7 @@ export const createTask = async (
     // Save the validated task to the database
     const task = await prisma.task.create({
       data: validatedTask,
+      // userId: req.user!.id as unknown as number,
     });
 
     return res.status(201).json(task);
