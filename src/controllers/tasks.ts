@@ -1,4 +1,4 @@
-import { z, ZodError } from 'zod';
+import { z, type ZodError } from 'zod';
 import multer from 'multer';
 import type { Request, Response, NextFunction } from 'express';
 import { parse } from 'csv-parse';
@@ -9,9 +9,10 @@ import {
   UpdateTaskSchema,
 } from '../schemas/task.js';
 import prisma from '../prisma/client.js';
-import { BadRequestError, NotFoundError } from '../utils/customErrors.js';
+import { NotFoundError } from '../utils/customErrors.js';
 
 const storage = multer.memoryStorage();
+
 export const multerUpload = multer({ storage });
 
 export const uploadHandler = async (
@@ -20,50 +21,61 @@ export const uploadHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { file, user } = req;
+    const file = req.file;
 
     if (!file) {
-      throw new BadRequestError('No file uploaded.');
+      return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    const parsedTasks: Array<z.infer<typeof TaskSchema>> = [];
+
+    const errors: ZodError[] = [];
+    // read file buffer using multer
+
+    // open asyncFileStream to read csv file data in chunks
+
+    // parse csv file data using csv-parse
+
+    // validate csv data using zod schema
+
+    // save it to temp array for now and return the temp array in json response.
+
     const parser = parse({ columns: true, skip_empty_lines: true });
-    const tasks: z.infer<typeof CreateTaskSchema>[] = [];
 
-    parser.on('data', (row) => {
-      try {
-        const validatedTask = CreateTaskSchema.parse(row);
-        tasks.push({ ...validatedTask });
-      } catch (error) {
-        parser.emit('error', error);
-      }
-    });
+    const stream = await import('stream');
 
-    parser.on('error', (err) => next(err));
+    const readableStream = new stream.PassThrough();
 
-    parser.on('end', async () => {
-      try {
-        if (tasks.length === 0) {
-          throw new BadRequestError(
-            'CSV file is empty or contains no valid tasks.'
-          );
+    readableStream.end(file.buffer);
+
+    readableStream
+      .pipe(parser)
+      .on('data', async (row) => {
+        try {
+          const validatedTask = TaskSchema.parse(row);
+          parsedTasks.push(validatedTask);
+          await prisma.task.create({
+            data: { ...validatedTask, userId: req.user!.id },
+          });
+        } catch (error) {
+          // parser.emit('error', error); // Handled by error middleware
+          parser.emit('error', error);
+          // throw error;
         }
-
-        await prisma.task.createMany({
-          data: tasks.map((task) => ({ ...task, userId: user!.id })),
-          skipDuplicates: true,
-        });
-
-        res.status(StatusCodes.CREATED).json({
-          success: true,
-          message: 'Tasks uploaded successfully',
-          data: { count: tasks.length },
-        });
-      } catch (error) {
-        next(error);
-      }
-    });
-
-    parser.end(file.buffer);
+      })
+      .on('error', (error: ZodError) => {
+        errors.push(error);
+      })
+      .on('end', () => {
+        if (errors.length > 0) {
+          next(errors);
+        } else {
+          res.status(201).json({
+            message: 'Tasks uploaded successfully',
+            tasks: parsedTasks,
+          });
+        }
+      });
   } catch (error) {
     next(error);
   }
@@ -77,7 +89,7 @@ export const createTask = async (
   try {
     const validatedTask = CreateTaskSchema.parse(req.body);
     const task = await prisma.task.create({
-      data: CreateTaskSchema.parse({ ...validatedTask, userId: req.user!.id }),
+      data: { ...validatedTask, userId: req.user!.id },
     });
     res.status(StatusCodes.CREATED).json({ success: true, data: task });
   } catch (error) {

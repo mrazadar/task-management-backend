@@ -69,7 +69,7 @@ export const signIn = async (
     }
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
-      expiresIn: '1h',
+      expiresIn: '4h',
     });
 
     res.cookie('token', token, {

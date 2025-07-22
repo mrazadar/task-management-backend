@@ -19,19 +19,18 @@ export const withAuth = (req: Request, res: Response, next: NextFunction) => {
   console.log('Cookies : ', JSON.stringify(req.cookies));
 
   const token = req.cookies?.token;
-
-  if (!token) {
-    throw new UnauthorizedError('Authentication token not provided.');
-  }
-
   try {
+    if (!token) {
+      throw new UnauthorizedError('Authentication token not provided.');
+    }
+
     const decoded: JwtPayload = jwt.verify(token, JWT_SECRET) as {
       userId: number;
     };
 
-    // if (isTokenExpired(decoded)) {
-    //   throw new UnauthorizedError('Token has expired.');
-    // }
+    if (isTokenExpired(decoded)) {
+      throw new UnauthorizedError('Token has expired.');
+    }
 
     req.user = { id: decoded.userId };
     next();
