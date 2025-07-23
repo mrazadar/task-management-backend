@@ -17,7 +17,10 @@ const app = express();
 
 async function server() {
   // middlewares
+  // allow cross-origin requests from localhost:3000
+
   app.use(cors());
+
   app.use(express.json());
   app.use(cookieParser());
 
