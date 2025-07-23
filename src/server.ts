@@ -9,6 +9,8 @@ import authRouter from './routes/auth.js';
 import tasksRouter from './routes/tasks.js';
 import { withAuth } from './middlewares/authMiddleware.js';
 
+const allowedOrigins = ['http://localhost:3000'];
+
 // Load environment variables
 dotenv.config();
 
@@ -19,10 +21,56 @@ async function server() {
   // middlewares
   // allow cross-origin requests from localhost:3000
 
-  app.use(cors());
-
   app.use(express.json());
   app.use(cookieParser());
+
+  // Custom middleware to validate API key for no-origin requests in production
+  // app.use((req, res, next) => {
+  //   // Only check for no-origin requests in production
+  //   if (process.env.NODE_ENV === 'production' && !req.get('Origin')) {
+  //     const apiKey = req.get('X-API-Key');
+  //     if (!apiKey || apiKey !== process.env.API_KEY) {
+  //       return res
+  //         .status(403)
+  //         .json({ error: 'No origin or invalid API key in production' });
+  //     }
+  //   }
+  //   next();
+  // });
+
+  // CORS configuration
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Handle no-origin requests
+        if (!origin) {
+          if (process.env.NODE_ENV === 'production') {
+            // In production, require an API key for no-origin requests
+            // Allow requests with no origin in development (e.g., curl, Postman)
+            // mobile and curl and other origin less tools can
+            // send a unique task-management-header to bypass the API key check
+            // browsers will always send origin headers
+            // uncomment above middleware to enable this
+            if (!origin && process.env.NODE_ENV !== 'production') {
+              return callback(null, true);
+            }
+            return callback(
+              new Error('No origin or invalid API key in production')
+            );
+          }
+          // Allow no-origin requests in development
+          return callback(null, true);
+        }
+        if (allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true, // Allow credentials (cookies, authorization headers)
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed methods
+    })
+  );
 
   // app routes
   app.use('/api/auth', authRouter);
