@@ -37,7 +37,7 @@ export const signUp = async (
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      // sameSite: 'strict',
     });
 
     res.status(StatusCodes.CREATED).json({
@@ -75,7 +75,7 @@ export const signIn = async (
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      // sameSite: 'strict',
     });
 
     res.status(StatusCodes.OK).json({
