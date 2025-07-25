@@ -8,6 +8,7 @@ import {
   createTask,
   multerUpload,
   uploadHandler,
+  streamTaskEvents,
 } from '../controllers/tasks.js';
 
 const router = Router();
@@ -18,5 +19,8 @@ router.put('/:id', updateTask);
 router.delete('/:id', deleteTask);
 router.post('/', createTask);
 router.post('/upload', multerUpload.single('file'), uploadHandler);
+
+// stream task events
+router.get('/stream', streamTaskEvents);
 
 export default router;

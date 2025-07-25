@@ -7,9 +7,13 @@ import {
   CreateTaskSchema,
   TaskSchema,
   UpdateTaskSchema,
+  type UserTask,
 } from '../schemas/task.js';
 import prisma from '../prisma/client.js';
+
 import { NotFoundError } from '../utils/customErrors.js';
+import { EventEmitter } from 'events';
+const taskEvents = new EventEmitter();
 
 const storage = multer.memoryStorage();
 
@@ -81,6 +85,52 @@ export const uploadHandler = async (
   }
 };
 
+export const streamTaskEvents = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const sendEvent = (data: { event: string; task: UserTask }) => {
+      res.write(`event: ${data.event}:\n Task: ${JSON.stringify(data.task)}\n`);
+    };
+
+    const listener = (event: string, task: UserTask) => {
+      if (task.userId === req.user?.id) {
+        sendEvent({ event, task });
+      }
+    };
+
+    taskEvents.on('taskCreated', listener);
+    taskEvents.on('taskUpdated', listener);
+    taskEvents.on('taskDeleted', listener);
+
+    req.on('close', () => {
+      taskEvents.off('taskCreated', listener);
+      taskEvents.off('taskUpdated', listener);
+      taskEvents.off('taskDeleted', listener);
+      res.end();
+    });
+
+    // Send initial heartbeat
+    sendEvent({
+      event: 'heartbeat',
+      task: {
+        userId: 9999,
+        title: 'Heartbeat',
+        description: 'Keeping the connection alive',
+        status: 'TODO',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createTask = async (
   req: Request,
   res: Response,
@@ -92,6 +142,7 @@ export const createTask = async (
       data: { ...validatedTask, userId: req.user!.id },
     });
     res.status(StatusCodes.CREATED).json({ success: true, data: task });
+    taskEvents.emit('taskCreated', 'taskCreated', task);
   } catch (error) {
     next(error);
   }
