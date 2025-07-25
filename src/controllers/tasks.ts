@@ -145,9 +145,20 @@ export const updateTask = async (
       ...req.body,
     });
 
-    const task = await prisma.task.update({
-      where: { id: Number(id), userId: req.user!.id },
-      data: validatedTask,
+    // using prisma transactions
+    const task = await prisma.$transaction(async (tx) => {
+      const existingTask = await tx.task.findUnique({
+        where: { id: Number(id), userId: req.user!.id },
+      });
+
+      if (!existingTask) {
+        throw new NotFoundError('Task not found');
+      }
+
+      return await tx.task.update({
+        where: { id: Number(id), userId: req.user!.id },
+        data: validatedTask,
+      });
     });
 
     res.status(StatusCodes.OK).json({ success: true, data: task });
