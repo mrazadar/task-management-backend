@@ -35,7 +35,9 @@ export const withAuth = (req: Request, res: Response, next: NextFunction) => {
     req.user = { id: decoded.userId };
     next();
   } catch (error) {
-    throw new UnauthorizedError('Invalid or expired authentication token.');
+    throw new UnauthorizedError(
+      `Invalid or expired authentication token. ${error instanceof Error ? error.message : ''}`
+    );
   }
 };
 
