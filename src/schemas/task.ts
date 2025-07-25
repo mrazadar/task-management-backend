@@ -9,6 +9,13 @@ export const TaskSchema = z.object({
   }),
 });
 
+export const PaginationSchema = z.object({
+  page: z.number().int().positive('Page must be a positive integer'),
+  limit: z.number().int().positive('Limit must be a positive integer'),
+});
+
+export type PaginationSchema = z.infer<typeof PaginationSchema>;
+
 // Schema for creating tasks (client-side, excludes userId)
 export const CreateTaskSchema = TaskSchema;
 
