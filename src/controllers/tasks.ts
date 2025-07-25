@@ -90,17 +90,18 @@ export const streamTaskEvents = async (
   res: Response,
   next: NextFunction
 ) => {
+  // TODO: Fix this handler later..
   try {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
     const sendEvent = (data: { event: string; task: UserTask }) => {
-      res.write(`event: ${data.event}:\n Task: ${JSON.stringify(data.task)}\n`);
+      res.write(`event: ${data.event} Task: ${JSON.stringify(data.task)}`);
     };
 
     const listener = (event: string, task: UserTask) => {
-      if (task.userId === req.user?.id) {
+      if (task.userId === req.user!.id) {
         sendEvent({ event, task });
       }
     };
@@ -120,10 +121,12 @@ export const streamTaskEvents = async (
     sendEvent({
       event: 'heartbeat',
       task: {
-        userId: 9999,
+        id: 9999,
         title: 'Heartbeat',
         description: 'Keeping the connection alive',
         status: 'TODO',
+        userId: 9999,
+        createdAt: new Date().toISOString(),
       },
     });
   } catch (error) {
@@ -171,7 +174,7 @@ export const getTask = async (
   try {
     const { id } = req.params;
     const task = await prisma.task.findUnique({
-      where: { id: Number(id), userId: req.user!.id },
+      where: { id: Number(id), userId: Number(req.user!.id) },
     });
 
     if (!task) {

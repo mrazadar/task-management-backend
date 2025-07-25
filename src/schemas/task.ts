@@ -35,7 +35,7 @@ export type CreateTask = z.infer<typeof CreateTaskSchema>;
 export type UpdateTask = z.infer<typeof UpdateTaskSchema>;
 export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;
 
-export type UserTask = Task & { userId: number };
+export type UserTask = Task & { id: number; userId: number; createdAt: string };
 
 /**
  * @description Zod schemas for validating task data in API requests and CSV uploads.
